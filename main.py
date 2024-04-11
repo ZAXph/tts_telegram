@@ -21,24 +21,28 @@ def expectation_text(message):
 
 
 def processing_text(message):
-    len_text = is_tts_symbol_limit(message, message.text)
-    if len_text != len(message.text):
-        msg = bot.send_message(chat_id=message.chat.id, text="Поменяйте текст:")
-        bot.register_next_step_handler(msg, processing_text)
+    if message.content_type != "text":
+        bot.send_message(chat_id=message.chat.id, text="Вы отправили не текст! Отправь свой текст.")
+        bot.register_next_step_handler(message, processing_text)
     else:
-        success, response = tts.text_to_speech(message.text)
-        if success:
-            tokens = table.get_data("token", message.from_user.id)[0][0]
-            table.update_data(message.from_user.id, "token", int(tokens) + len_text)
-            with open(f'voice/{message.from_user.id}.ogg', 'wb') as audio_file:
-                audio_file.write(response)
-            voice = open(f'voice/{message.from_user.id}.ogg', 'rb')
-            bot.send_voice(chat_id=message.chat.id, voice=voice)
-            voice.close()
-            bot.send_message(chat_id=message.chat.id, text="Новый запрос: /tts")
+        len_text = is_tts_symbol_limit(message, message.text)
+        if len_text != len(message.text):
+            msg = bot.send_message(chat_id=message.chat.id, text="Поменяйте текст:")
+            bot.register_next_step_handler(msg, processing_text)
         else:
-            bot.send_message(chat_id=message.chat.id, text="Что-то пошло не так!")
-
+            success, response = tts.text_to_speech(message.text)
+            if success:
+                tokens = table.get_data("token", message.from_user.id)[0][0]
+                table.update_data(message.from_user.id, "token", int(tokens) + len_text)
+                with open(f'voice/{message.from_user.id}.ogg', 'wb') as audio_file:
+                    audio_file.write(response)
+                voice = open(f'voice/{message.from_user.id}.ogg', 'rb')
+                bot.send_voice(chat_id=message.chat.id, voice=voice)
+                voice.close()
+                bot.send_message(chat_id=message.chat.id, text="Новый запрос: /tts")
+            else:
+                bot.send_message(chat_id=message.chat.id, text="Что-то пошло не так!")
+                
 
 if __name__ == "__main__":
     table.create_table()
